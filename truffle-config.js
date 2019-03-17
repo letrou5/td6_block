@@ -51,7 +51,7 @@ module.exports = {
      ganache: {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 7545,           // Standard Ethereum port (default: none)
-      network_id: "5777"       // Any network (default: none)
+      network_id: "*" 
      },
 
   
@@ -59,7 +59,7 @@ module.exports = {
 
      ropsten: {
       provider: function() { 
-       return new HDWalletProvider(mnemonic, "https://ropsten.infura.io/v3/530d0c1b44a44c4aad8b50650256848d");
+       return new HDWalletProvider(mnemonic, "https://ropsten.infura.io/v3/367a87e3db314127a9e379656f965540");
       },
       network_id: 3,
       gas: 4500000,

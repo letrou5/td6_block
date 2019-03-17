@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.19;
 
 import "./ERC721Basic.sol";
 import "./ERC721Receiver.sol";
@@ -37,10 +37,9 @@ struct coq
 {
 	address owner;
 	string name;
-	string color;
-	uint256 age;
 	uint256 masse;
 	bool agressif;
+  bool alive;
 }
 
 address public ownerr;
@@ -54,18 +53,20 @@ address public ownerr;
     _registerInterface(InterfaceId_ERC721);
     _registerInterface(InterfaceId_ERC721Exists);
   }
-
+//
+//Début td6
+//
   uint256 index =0;
-  function declareAnimal(address ad,string nam,string col,uint256 ag,uint256 mas,bool agr)public
+  function declareAnimal(address ad,string nam,uint256 mas,bool agr)public
   {
   	
   	registercoq[index].owner=ad;
   	registercoq[index].name=nam;
-  	registercoq[index].color=col;
-  	registercoq[index].age=ag;
   	registercoq[index].masse=mas;
   	registercoq[index].agressif=agr;
+    registercoq[index].alive=true;
   	index=index+1;
+    
   }
 mapping (address => bool) breeder;
 
@@ -75,15 +76,144 @@ function registerBreeder(address user)public
 require(msg.sender == ownerr);
 breeder[user] = true;
 }
+function deadAnimal (uint256 ind)public
+{
+  require(registercoq[ind].owner == msg.sender);
+  registercoq[ind].alive = false;
+}
+
+
+mapping (uint256 => Auc) public auction;
+struct Auc
+{
+  address newOwner;
+  uint expirationDate;
+  coq animal;
+  uint256 bid;
+}
+
+
+uint256 indexA =0;
+
+function createAuction(uint256 indexAnimal, uint256 bidMin)public
+{
+  require(msg.sender == registercoq[indexAnimal].owner);
+  require(registercoq[indexAnimal].alive == true);
+  auction[indexA].expirationDate = now + 2 days; 
+  auction[indexA].animal = registercoq[indexAnimal];
+  auction[indexA].bid = bidMin;
+  auction[indexA].newOwner = msg.sender;
+}
+
+function bidOnAuction(uint256 newBid, uint256 indexAuction)public
+{
+  require (auction[indexAuction].expirationDate < now);
+  require (auction[indexAuction].bid < newBid, 'Your bid is too low');
+  auction[indexAuction].bid = newBid;
+  auction[indexAuction].newOwner = msg.sender;
+}
+
+function claimAuction(uint256 indexAuction)public
+{
+  require (auction[indexAuction].expirationDate > now);
+  require (auction[indexAuction].newOwner == msg.sender, 'You did not win the auction');
+  auction[indexAuction].animal.owner = msg.sender;
+}
 
 
 
 
-  /**
-   * @dev Gets the balance of the specified address
-   * @param _owner address to query the balance of
-   * @return uint256 representing the amount owned by the passed address
-   */
+uint [] upToBreed = new uint[] (2);
+uint counter = 0;
+function readyToBreed (uint indexCoq) public 
+{
+  require (registercoq[indexCoq].owner == msg.sender);
+  require (registercoq[indexCoq].alive == true);
+  upToBreed[counter]= indexCoq;
+  counter = counter + 1;
+  if (counter > 1)
+  {
+    toBreed(upToBreed);
+    counter = 0;
+  }
+}
+
+function toBreed(uint[] array)public 
+{
+  declareAnimal(registercoq[array[0]].owner,'baby',200,registercoq[array[1]].agressif);
+}
+
+
+mapping (uint256 => arene) public versus;
+struct arene
+{
+  uint indexcoq1;
+  uint indexcoq2;
+  uint price;
+  bool available;
+  bool ready;
+}
+
+uint256 indexFight = 0;
+
+function proposeFight(uint256 indexcoq, uint256 money)public
+{
+  require(msg.sender == registercoq[indexcoq].owner);
+  require(registercoq[indexcoq].alive == true);
+  versus[indexFight].indexcoq1 = indexcoq;
+  versus[indexFight].price = money;
+  versus[indexFight].available = true;
+  versus[indexFight].ready = false;
+}
+
+function agreeToFight(uint256 indexcoq, uint256 money, uint256 indexF)public
+{
+  require(msg.sender == registercoq[indexcoq].owner);
+  require(registercoq[indexcoq].alive == true);
+  require(versus[indexF].available == true);
+  require(versus[indexF].price == money);
+  versus[indexF].indexcoq2 = indexcoq;
+  versus[indexF].price = money*2;
+  versus[indexF].available = false;
+  versus[indexF].ready = true;
+  fight(indexF);
+}
+
+function fight(uint indexVersus)public
+{
+  uint winner = 0;
+  require(versus[indexVersus].ready == true);
+  if(registercoq[versus[indexVersus].indexcoq1].agressif == true)
+  {
+    if(registercoq[versus[indexVersus].indexcoq2].agressif == true)
+    {
+      if(registercoq[versus[indexVersus].indexcoq1].masse > registercoq[versus[indexVersus].indexcoq2].masse)
+      {
+        winner = 1;
+        deadAnimal(versus[indexVersus].indexcoq2);
+      }
+      winner = 2;
+      deadAnimal(versus[indexVersus].indexcoq1);
+    }
+    winner = 1; 
+    deadAnimal(versus[indexVersus].indexcoq2);
+  }
+  if(registercoq[versus[indexVersus].indexcoq1].masse > registercoq[versus[indexVersus].indexcoq2].masse)
+  {
+    winner = 1;
+    deadAnimal(versus[indexVersus].indexcoq2);
+  }
+  winner = 2;
+  deadAnimal(versus[indexVersus].indexcoq1);
+}
+//
+
+//FIn td 6
+//
+
+
+
+
   function balanceOf(address _owner) public view returns (uint256) {
     require(_owner != address(0));
     return ownedTokensCount[_owner];
